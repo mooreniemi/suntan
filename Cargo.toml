@@ -1,0 +1,26 @@
+[package]
+name = "lucky"
+version = "0.1.0"
+authors = ["alex <bigbadmath@gmail.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+j4rs = "0.12.0"
+cursive = "0.15"
+
+# example of j4rs that calls a lucene wrapper from rust
+[[bin]]
+name = "lucky"
+path = "src/main.rs"
+
+# just a place i can practice simple algorithms in rust
+[[bin]]
+name = "practice"
+path = "src/practice.rs"
+
+# putting ncurses around lucky
+[[bin]]
+name = "curse"
+path = "src/curse.rs"
