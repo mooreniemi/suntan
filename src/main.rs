@@ -7,7 +7,7 @@ use std::convert::TryFrom;
 
 fn main() {
   // Create a JVM
-  let entry = ClasspathEntry::new("/home/alex/git/lucky-java/target/lucky-java-1.0-SNAPSHOT.jar");
+  let entry = ClasspathEntry::new("./java-wrapper/target/lucky-java-1.0-SNAPSHOT.jar");
   let jvm: Jvm = JvmBuilder::new()
     .classpath_entry(entry)
     .build().unwrap();
