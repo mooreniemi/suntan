@@ -1,10 +1,7 @@
 # lucky
 
-This repo is an example of calling Lucene from Rust using j4rs and then
-using cursive to wrap up the code in a TUI.
+This is just a proof-of-concept tool to dump Lucene shards into Tantivy. 
 
-Depends on existing Lucene shard (I am using an ES shard locally) and an
-ncurses installation.
+It relies on `j4rs`. This is a trade-off. On one hand, it means it's easy to deal with Lucene codecs changing version since you can rely on the underlying Java code to read. On the other hand, it means that you have an inter-process communication layer between Rust and the JVM, which is slow to process.
 
-Should probably make the Java stuff a submodule but it was small so left
-it in here.
+- java_wrapper should probably be made into a git submodule. Right now I `rsync` from another repo.
