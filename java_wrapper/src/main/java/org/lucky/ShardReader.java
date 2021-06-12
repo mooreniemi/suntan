@@ -50,6 +50,17 @@ public class ShardReader {
         sr.queryName("name", "magnam");
     }
 
+    // Loading all docs into memory is a bit risky but sending them all over at once
+    // might be better than having to do a full ipc per each hasNext in rust
+    public List<String> allDocSource() {
+        DocSourceIterator iterator = new DocSourceIterator(reader);
+        List<String> actualList = new ArrayList<String>();
+        while (iterator.hasNext()) {
+            actualList.add(iterator.next());
+        }
+        return actualList;
+    }
+
     public class DocSourceIterator implements Iterator<String> {
         IndexReader reader;
         int pos = 0;

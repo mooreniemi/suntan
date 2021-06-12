@@ -3,6 +3,7 @@
 //
 //use std::{thread, time};
 use j4rs::{InvocationArg, Jvm, JvmBuilder, ClasspathEntry};
+use serde_json::Value;
 use std::convert::TryFrom;
 
 fn main() {
@@ -31,5 +32,12 @@ fn main() {
         .invoke("iterator", &[]).unwrap()
         .invoke("next", &[]).unwrap()
         .to_rust().expect("get first doc");
-    dbg!(first_doc);
+    let v: Value = serde_json::from_str(&first_doc).unwrap();
+    dbg!(v);
+
+    let all_docs: Vec<String> = jvm.chain(&instance)
+        .unwrap()
+        .invoke("allDocSource", &[]).unwrap()
+        .to_rust().expect("get all docs at once");
+    dbg!(all_docs.len());
 }
