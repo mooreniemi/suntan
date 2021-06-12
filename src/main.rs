@@ -1,4 +1,6 @@
 use std::convert::TryFrom;
+use std::error::Error;
+use std::process;
 
 // (Full example with detailed comments in examples/01d_quick_example.rs)
 //
@@ -7,6 +9,16 @@ use std::convert::TryFrom;
 use clap::{AppSettings, Clap};
 use j4rs::{ClasspathEntry, InvocationArg, Jvm, JvmBuilder};
 use serde_json::Value;
+use tantivy::collector::TopDocs;
+use tantivy::doc;
+use tantivy::query::QueryParser;
+use tantivy::schema::Schema;
+use tantivy::schema::STORED;
+use tantivy::schema::TEXT;
+use tantivy::DocAddress;
+use tantivy::Document;
+use tantivy::Index;
+use tantivy::Score;
 
 /// This doc string acts as a help message when the user runs '--help'
 /// as do all doc strings on fields
@@ -40,8 +52,13 @@ struct Test {
     debug: bool,
 }
 
-fn main() {
-    // more program logic goes here...
+fn run() -> Result<(), Box<Error>> {
+    // destination index details
+    let mut schema_builder = Schema::builder();
+    let title = schema_builder.add_text_field("name", TEXT | STORED);
+    let body = schema_builder.add_text_field("slug", TEXT);
+    let schema = schema_builder.build();
+
     let entry = ClasspathEntry::new("/home/alex/git/lucky-java/target/lucky-java-1.0-SNAPSHOT.jar");
     let jvm: Jvm = JvmBuilder::new()
         .classpath_entry(entry)
@@ -49,22 +66,66 @@ fn main() {
         .expect("can build JVM");
 
     // this example shard was generated with some faker data in Latin
-    let instantiation_args = vec![InvocationArg::try_from("tests/resources/").unwrap()];
-    let instance = jvm
-        .create_instance("org.lucky.ShardReader", instantiation_args.as_ref())
-        .unwrap();
+    let instantiation_args = vec![InvocationArg::try_from("tests/resources/")?];
+    let instance = jvm.create_instance("org.lucky.ShardReader", instantiation_args.as_ref())?;
 
-    let chain = jvm.chain(&instance).unwrap();
-    let iterator = chain.invoke("iterator", &[]).unwrap();
+    let chain = jvm.chain(&instance)?;
+    let iterator = chain.invoke("iterator", &[])?;
 
-    while iterator.invoke("hasNext", &[]).unwrap().to_rust().unwrap() {
-        let doc_source: String = iterator
-            .invoke("next", &[])
-            .unwrap()
-            .to_rust()
-            .expect("get first doc");
-        let v: Value = serde_json::from_str(&doc_source).unwrap();
+    // Indexing documents
 
-        dbg!(v);
+    let index = Index::create_in_dir("/tmp/tantivy-test/", schema.clone())?;
+
+    // Here we use a buffer of 100MB that will be split
+    // between indexing threads.
+    let mut index_writer = index.writer(100_000_000)?;
+
+    // FIXME: likely better to just grab all the docs at once in a chunked series than this
+    while iterator.invoke("hasNext", &[])?.to_rust()? {
+        let doc_source: String = iterator.invoke("next", &[])?.to_rust()?;
+        let v: Value = serde_json::from_str(&doc_source)?;
+
+        let mut doc = Document::new();
+        doc.add_text(title, v["name"].as_str().unwrap_or(""));
+        doc.add_text(body, v["slug"].as_str().unwrap_or(""));
+        index_writer.add_document(doc);
+        // dbg!(v);
+    }
+
+    // We need to call .commit() explicitly to force the
+    // index_writer to finish processing the documents in the queue,
+    // flush the current index to the disk, and advertise
+    // the existence of new documents.
+    index_writer.commit()?;
+
+    // # Searching
+
+    let reader = index.reader()?;
+
+    let searcher = reader.searcher();
+
+    let query_parser = QueryParser::for_index(&index, vec![title, body]);
+
+    // QueryParser may fail if the query is not in the right
+    // format. For user facing applications, this can be a problem.
+    // A ticket has been opened regarding this problem.
+    let query = query_parser.parse_query("magnam")?;
+
+    // Perform search.
+    // `topdocs` contains the 10 most relevant doc ids, sorted by decreasing scores...
+    let top_docs: Vec<(Score, DocAddress)> = searcher.search(&query, &TopDocs::with_limit(10))?;
+
+    for (_score, doc_address) in top_docs {
+        // Retrieve the actual content of documents given its `doc_address`.
+        let retrieved_doc = searcher.doc(doc_address)?;
+        println!("{}", schema.to_json(&retrieved_doc));
+    }
+    Ok(())
+}
+
+fn main() {
+    if let Err(e) = run() {
+        println!("Application error: {}", e);
+        process::exit(1);
     }
 }
