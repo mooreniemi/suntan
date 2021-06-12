@@ -1,3 +1,13 @@
+```
+    .-.-.
+ __ \   / __
+(  ` \.'.'  )
+(__.', \ .__)
+    /   \`===,
+    `-^-'
+
+niki
+```
 # lucky
 
 This is just a proof-of-concept tool to dump Lucene shards into Tantivy. 
