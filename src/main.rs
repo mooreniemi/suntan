@@ -37,29 +37,32 @@ enum SubCommand {
 struct Test {
     /// Print debug info
     #[clap(short)]
-    debug: bool
+    debug: bool,
 }
 
 fn main() {
-
     // more program logic goes here...
     let entry = ClasspathEntry::new("/home/alex/git/lucky-java/target/lucky-java-1.0-SNAPSHOT.jar");
     let jvm: Jvm = JvmBuilder::new()
         .classpath_entry(entry)
-        .build().expect("can build JVM");
+        .build()
+        .expect("can build JVM");
 
     // this example shard was generated with some faker data in Latin
-    let instantiation_args = vec![
-        InvocationArg::try_from("tests/resources/").unwrap()];
-    let instance = jvm.create_instance("org.lucky.ShardReader", instantiation_args.as_ref()).unwrap();
+    let instantiation_args = vec![InvocationArg::try_from("tests/resources/").unwrap()];
+    let instance = jvm
+        .create_instance("org.lucky.ShardReader", instantiation_args.as_ref())
+        .unwrap();
 
     let chain = jvm.chain(&instance).unwrap();
-    let iterator = chain
-        .invoke("iterator", &[]).unwrap();
+    let iterator = chain.invoke("iterator", &[]).unwrap();
 
     while iterator.invoke("hasNext", &[]).unwrap().to_rust().unwrap() {
-        let doc_source: String = iterator.invoke("next", &[])
-            .unwrap().to_rust().expect("get first doc");
+        let doc_source: String = iterator
+            .invoke("next", &[])
+            .unwrap()
+            .to_rust()
+            .expect("get first doc");
         let v: Value = serde_json::from_str(&doc_source).unwrap();
 
         dbg!(v);
