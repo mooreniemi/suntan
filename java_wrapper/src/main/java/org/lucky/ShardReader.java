@@ -12,7 +12,9 @@ import org.apache.lucene.store.FSDirectory;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
+import java.util.NoSuchElementException;
 
 public class ShardReader {
     public static final JsonParser JSON_PARSER = new JsonParser();
@@ -46,6 +48,44 @@ public class ShardReader {
         System.out.println("FREQ " + freq);
 
         sr.queryName("name", "magnam");
+    }
+
+    public class DocSourceIterator implements Iterator<String> {
+        IndexReader reader;
+        int pos = 0;
+
+        public DocSourceIterator(IndexReader reader) {
+            this.reader = reader;
+        }
+
+        @Override
+        public boolean hasNext() {
+            return (pos < reader.maxDoc());
+        }
+
+        @Override
+        public String next() {
+            if (hasNext()) {
+                try {
+                    // TODO: need to check isDeleted somehow?
+                    // the below call can throw
+                    Document doc = reader.document(pos);
+                    // NOTE: where Elasticsearch stores the underlying document
+                    String source = doc.getBinaryValue("_source").utf8ToString();
+                    pos++;
+                    return source;
+                } catch (IOException exception) {
+                    // FIXME: should prob be diff error type
+                    throw new NoSuchElementException();
+                }
+            } else {
+                throw new NoSuchElementException();
+            }
+        }
+    }
+
+    public DocSourceIterator iterator() {
+        return new DocSourceIterator(reader);
     }
 
     public List<String> queryName(String field, String value) {

@@ -20,8 +20,16 @@ fn main() {
         InvocationArg::try_from("name").unwrap(),
         InvocationArg::try_from("magnam").unwrap()
     ];
-    let names: Vec<String> = jvm.chain(instance)
+    let names: Vec<String> = jvm.chain(&instance)
+        .unwrap()
         .invoke("queryName", &field_and_value).unwrap()
         .to_rust().expect("should be able to execute queryName and convert to vec");
     dbg!(names);
+
+    let first_doc: String = jvm.chain(&instance)
+        .unwrap()
+        .invoke("iterator", &[]).unwrap()
+        .invoke("next", &[]).unwrap()
+        .to_rust().expect("get first doc");
+    dbg!(first_doc);
 }
