@@ -9,5 +9,8 @@
         <module name="lucky-java" />
       </profile>
     </annotationProcessing>
+    <bytecodeTargetLevel target="8">
+      <module name="lucky-java (1)" target="1.5" />
+    </bytecodeTargetLevel>
   </component>
 </project>

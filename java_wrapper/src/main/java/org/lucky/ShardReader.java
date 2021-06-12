@@ -15,33 +15,41 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class ShardReader {
-    public static final String PATH_NAME = "/var/lib/elasticsearch/nodes/0/indices/9XubvRRIQjC10BJKHhG1ug/0/index/";
     public static final JsonParser JSON_PARSER = new JsonParser();
+
+    private IndexReader reader;
+    public IndexReader getReader() {
+        return reader;
+    }
+
+    public ShardReader(String pathName) {
+        this.reader = initReader(pathName);
+    }
 
     // https://medium.com/@manis.eren/loading-elasticsearch-index-to-lucene-api-in-java-bf3206a152b9
     public static void main(String[] args) throws Exception {
-        String pathName = PATH_NAME;
-        System.out.println(pathName);
-        System.out.println(docCount(pathName));
-        IndexReader reader = getReader(pathName);
+        final String pathName = "/var/lib/elasticsearch/nodes/0/indices/9XubvRRIQjC10BJKHhG1ug/0/index/";
+        final String pathName2 = "/var/lib/elasticsearch/nodes/0/indices/0aoMuSE3QK6UZFV1htSczw/0/index/";
+        ShardReader sr = new ShardReader(pathName2);
+        System.out.println("Docs in Reader count: " + sr.docCount());
 
-        Document doc = reader.document(1);
+        Document doc = sr.getReader().document(1);
         // in es, you will only see _id and _source on the doc itself
         // doc.getFields().stream().forEach(f -> System.out.println(f.name()));
         final String source = doc.getBinaryValue("_source").utf8ToString();
         System.out.println(source);
-        System.exit(0);
+        // System.exit(0);
 
-        Term t = new Term("customer_full_name", "mary");
-        int freq = reader.docFreq(t);
+        // this depends on your local example schema
+        Term t = new Term("name", "magnam");
+        int freq = sr.getReader().docFreq(t);
         System.out.println("FREQ " + freq);
 
-        queryName("mary");
+        sr.queryName("name", "magnam");
     }
 
-    public static List<String> queryName(String name) {
-        final Term t = new Term("customer_full_name", name);
-        final IndexReader reader = getReader(PATH_NAME);
+    public List<String> queryName(String field, String value) {
+        final Term t = new Term(field, value);
         final IndexSearcher searcher = new IndexSearcher(reader);
         final Query query = new TermQuery(t);
 
@@ -53,10 +61,10 @@ public class ShardReader {
                 Document d = reader.document(score.doc);
                 System.out.println("DOC " + score.doc + " SCORE " + score.score);
                 final String s = d.getBinaryValue("_source").utf8ToString();
-                final String customer_full_name = JSON_PARSER.parse(s).getAsJsonObject()
-                        .get("customer_full_name").getAsString();
-                System.out.println("DOC _source " + customer_full_name);
-                names.add(customer_full_name);
+                final String name = JSON_PARSER.parse(s).getAsJsonObject()
+                        .get(field).getAsString();
+                System.out.println("DOC _source " + name);
+                names.add(name);
             }
             return names;
         } catch (IOException e) {
@@ -64,12 +72,11 @@ public class ShardReader {
             throw new RuntimeException(e);
         }
     }
-    public static int docCount(String pathName) {
-        IndexReader reader = getReader(pathName);
+    public int docCount() {
         return reader.numDocs();
     }
 
-    public static IndexReader getReader(String pathName) {
+    IndexReader initReader(String pathName) {
         try {
             File path = new File(pathName);
             System.out.println(pathName + " exists? " + path.exists());
