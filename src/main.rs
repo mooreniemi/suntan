@@ -57,8 +57,8 @@ struct Test {
 fn run() -> Result<(), Box<Error>> {
     // destination index details
     let mut schema_builder = Schema::builder();
-    let title = schema_builder.add_text_field("title", TEXT);
-    let content = schema_builder.add_text_field("content", TEXT);
+    let title = schema_builder.add_text_field("title", TEXT | STORED);
+    let content = schema_builder.add_text_field("content", TEXT | STORED);
     let last_updated = schema_builder.add_date_field("last_updated", INDEXED);
     // This is ES specific in a sense
     let source = schema_builder.add_text_field("source", STORED);
@@ -90,8 +90,9 @@ fn run() -> Result<(), Box<Error>> {
     // between indexing threads.
     let mut index_writer = index.writer(100_000_000)?;
 
-    // FIXME: likely better to just grab all the docs at once in a chunked series than this
-    // FIXME: not clear how to set id on Document in tantivy so this is duplication on each run
+    // FIXME: switch to batch iterator to pull in chunks of 1000 docs at a time
+    // FIXME: tantivy DocId is incremental so this creates duplication on each run
+    // FIXME: see also https://docs.rs/tantivy/0.15.0/tantivy/type.DocId.html
     while iterator.invoke("hasNext", &[])?.to_rust()? {
         let doc_source: String = iterator.invoke("next", &[])?.to_rust()?;
         // there is also a parse_document method we could use specific to tantivy
@@ -103,6 +104,7 @@ fn run() -> Result<(), Box<Error>> {
         let mut doc = Document::new();
         doc.add_text(title, v["title"].as_str().unwrap_or(""));
         doc.add_text(content, v["content"].as_str().unwrap_or(""));
+        // TODO: chrono timestamp
         // doc.add_date(content, v["last_updated"].as_str().unwrap_or(""));
         doc.add_text(source, doc_source);
 
@@ -134,10 +136,12 @@ fn run() -> Result<(), Box<Error>> {
     // `topdocs` contains the 10 most relevant doc ids, sorted by decreasing scores...
     let top_docs: Vec<(Score, DocAddress)> = searcher.search(&query, &TopDocs::with_limit(10))?;
 
+    println!("results");
     for (_score, doc_address) in top_docs {
         // Retrieve the actual content of documents given its `doc_address`.
         let retrieved_doc = searcher.doc(doc_address)?;
-        println!("{}", schema.to_json(&retrieved_doc));
+        dbg!(retrieved_doc);
+        // println!("{}", schema.to_json(&retrieved_doc));
     }
 
     Ok(())

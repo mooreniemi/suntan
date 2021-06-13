@@ -60,6 +60,52 @@ public class ShardReader {
         return actualList;
     }
 
+    public class DocSourceBatchIterator implements Iterator<List<String>> {
+        IndexReader reader;
+        int pos = 0;
+        int batchSize = 1000;
+
+        public DocSourceBatchIterator(IndexReader reader) {
+            this.reader = reader;
+        }
+
+        public DocSourceBatchIterator(IndexReader reader, int batchSize) {
+            this.reader = reader;
+            this.batchSize = batchSize;
+        }
+
+        @Override
+        public boolean hasNext() {
+            return (pos < reader.maxDoc());
+        }
+
+        @Override
+        public List<String> next() {
+            if (hasNext()) {
+                try {
+                    List<String> actualList = new ArrayList<String>();
+                    for (int i = 0; i < batchSize; i++) {
+                        if (!hasNext()) {
+                            break;
+                        }
+                        // TODO: need to check isDeleted somehow?
+                        Document doc = reader.document(pos);
+                        // NOTE: where Elasticsearch stores the underlying document
+                        String source = doc.getBinaryValue("_source").utf8ToString();
+                        actualList.add(source);
+                        pos++;
+                    }
+                    return actualList;
+                } catch (IOException exception) {
+                    // FIXME: should prob be diff error type
+                    throw new NoSuchElementException();
+                }
+            } else {
+                throw new NoSuchElementException();
+            }
+        }
+    }
+
     public class DocSourceIterator implements Iterator<String> {
         IndexReader reader;
         int pos = 0;
@@ -96,6 +142,10 @@ public class ShardReader {
 
     public DocSourceIterator iterator() {
         return new DocSourceIterator(reader);
+    }
+
+    public DocSourceBatchIterator batches() {
+        return new DocSourceBatchIterator(reader);
     }
 
     public List<String> queryName(String field, String value) {
