@@ -20,4 +20,6 @@ To generate Elasticsearch data I use [elasticsearch-test-data](https://github.co
 python es_test_data.py --es_url=http://localhost:9200 --format=title:dict:1:6,content:dict:10:20,last_update:ts,created:ts --count=1000 --dict_file=/usr/share/dict/words
 ```
 
+## high level todos
+
 - java_wrapper should probably be made into a git submodule. Right now I `rsync` from another repo.
