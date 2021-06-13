@@ -25,8 +25,11 @@ use tantivy::Score;
 #[clap(setting = AppSettings::ColoredHelp)]
 struct Opts {
     /// The location of the Elasticsearch Lucene index
-    #[clap(short, long, default_value = "tests/resources")]
+    #[clap(short, long, default_value = "tests/resources/es-idx")]
     input: String,
+    /// The location of the Tantivy schema
+    #[clap(short, long, default_value = "tests/resources/tantivy-schema.json")]
+    schema_path: String,
     /// The location of the Tantivy output index
     #[clap(short, long, default_value = "/tmp/lucky/tantivy-idx")]
     output: String,
@@ -35,18 +38,14 @@ struct Opts {
     test_query: String,
 }
 
-fn run(input: String, output: String, test_query: String) -> Result<(), Box<Error>> {
+fn run(
+    input: String,
+    output: String,
+    schema_path: String,
+    test_query: String,
+) -> Result<(), Box<Error>> {
     // destination index details
-    let mut schema_builder = Schema::builder();
-    // TODO: this is the annoying part, we need to map schema to schema
-    let title = schema_builder.add_text_field("title", TEXT | STORED);
-    let content = schema_builder.add_text_field("content", TEXT | STORED);
-    // TODO: handling time means bringing in chrono etc
-    let _last_updated = schema_builder.add_date_field("last_updated", INDEXED);
-    // This is ES specific in that ES uses StoredField to contain entire JSON doc that was stored
-    let source = schema_builder.add_text_field("source", STORED);
-
-    let schema = schema_builder.build();
+    let schema: Schema = serde_json::from_str(&fs::read_to_string(schema_path)?)?;
     dbg!(&schema);
 
     // safe to rm -rf /tmp/lucky/tantivy-idx
@@ -55,6 +54,7 @@ fn run(input: String, output: String, test_query: String) -> Result<(), Box<Erro
     let directory = MmapDirectory::open(&output)?;
     let index = Index::open_or_create(directory, schema.clone())?;
 
+    // j4rs Rust -> Java setup
     let entry = ClasspathEntry::new("./java_wrapper/target/lucky-java-1.0-SNAPSHOT.jar");
     let jvm: Jvm = JvmBuilder::new()
         .classpath_entry(entry)
@@ -84,11 +84,18 @@ fn run(input: String, output: String, test_query: String) -> Result<(), Box<Erro
             // dbg!(v);
 
             let mut doc = Document::new();
-            doc.add_text(title, v["title"].as_str().unwrap_or(""));
-            doc.add_text(content, v["content"].as_str().unwrap_or(""));
+
+            // FIXME: only handling exact field to field export for text
+            schema.fields().for_each(|(field, field_entry)| {
+                if field_entry.name().eq("source") {
+                    doc.add_text(field, doc_source);
+                } else {
+                    doc.add_text(field, v[field_entry.name()].as_str().unwrap_or(""));
+                }
+            });
+
             // TODO: chrono timestamp
             // doc.add_date(content, v["last_updated"].as_str().unwrap_or(""));
-            doc.add_text(source, doc_source);
 
             index_writer.add_document(doc);
         });
@@ -104,7 +111,12 @@ fn run(input: String, output: String, test_query: String) -> Result<(), Box<Erro
     let searcher = reader.searcher();
     dbg!(searcher.num_docs());
 
-    let query_parser = QueryParser::for_index(&index, vec![title, content]);
+    // search all fields except unindexed (eg. source) for the test query
+    let all_fields = schema
+        .fields()
+        .filter_map(|(field, field_entry)| field_entry.is_indexed().then(|| field))
+        .collect();
+    let query_parser = QueryParser::for_index(&index, all_fields);
 
     let query = query_parser.parse_query(&test_query)?;
     dbg!(&query);
@@ -125,7 +137,7 @@ fn main() {
     let opts: Opts = Opts::parse();
 
     // FIXME: this is old Rust 2015 format...
-    if let Err(e) = run(opts.input, opts.output, opts.test_query) {
+    if let Err(e) = run(opts.input, opts.output, opts.schema_path, opts.test_query) {
         println!("Application error: {}", e);
         process::exit(1);
     }

@@ -1,0 +1,31 @@
+[
+  {
+    "name": "title",
+    "type": "text",
+    "options": {
+      "indexing": {
+        "record": "position",
+        "tokenizer": "default"
+      },
+      "stored": false
+    }
+  },
+  {
+    "name": "content",
+    "type": "text",
+    "options": {
+      "indexing": {
+        "record": "basic",
+        "tokenizer": "default"
+      },
+      "stored": false
+    }
+  },
+  {
+    "name": "source",
+    "type": "text",
+    "options": {
+      "stored": true
+    }
+  }
+]

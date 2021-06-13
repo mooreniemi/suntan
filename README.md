@@ -10,7 +10,7 @@ niki
 ```
 # lucky
 
-This is just a proof-of-concept tool to dump Elasticsearch Lucene shards into Tantivy. There's also a couple `examples` of calling Lucene through Rust for querying.
+This is just a proof-of-concept tool to dump Elasticsearch Lucene shards into Tantivy. There's also a couple `examples` of calling Lucene through Rust for querying. You provide input, output, and the Tantivy output schema and the tool dumps into it. Your Tantivy schema must be just like or a subset of the Elasticsearch schema. Not all types are supported yet.
 
 ## cli
 
@@ -29,12 +29,14 @@ FLAGS:
     -V, --version    Prints version information
 
 OPTIONS:
-    -i, --input <input>              The location of the Elasticsearch Lucene index [default:
-                                     tests/resources]
-    -o, --output <output>            The location of the Tantivy output index [default:
-                                     /tmp/lucky/tantivy-idx]
-    -t, --test-query <test-query>    To test that the docs still match, this is sent in as test
-                                     query [default: lint]
+    -i, --input <input>                The location of the Elasticsearch Lucene index [default:
+                                       tests/resources/es-idx]
+    -o, --output <output>              The location of the Tantivy output index [default:
+                                       /tmp/lucky/tantivy-idx]
+    -s, --schema-path <schema-path>    The location of the Tantivy schema [default:
+                                       tests/resources/tantivy-schema.json]
+    -t, --test-query <test-query>      To test that the docs still match, this is sent in as test
+                                       query [default: lint]
 ```
 
 ## about
@@ -53,5 +55,5 @@ python es_test_data.py --es_url=http://localhost:9200 --format=title:dict:1:6,co
 
 ## high level todos
 
-- schema to schema mapping to make this a fully parameterized CLI tool. 
+- More types in the schema to schema mapping to make this a fully parameterized CLI tool. Right now only text is supported.
 - java_wrapper should probably be made into a git submodule. Right now I `rsync` from another repo.
