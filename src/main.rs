@@ -14,6 +14,7 @@ use tantivy::collector::TopDocs;
 use tantivy::directory::MmapDirectory;
 use tantivy::query::QueryParser;
 use tantivy::schema::Schema;
+use tantivy::schema::INDEXED;
 use tantivy::schema::STORED;
 use tantivy::schema::TEXT;
 use tantivy::DocAddress;
@@ -56,9 +57,13 @@ struct Test {
 fn run() -> Result<(), Box<Error>> {
     // destination index details
     let mut schema_builder = Schema::builder();
-    let title = schema_builder.add_text_field("name", TEXT | STORED);
-    let body = schema_builder.add_text_field("slug", TEXT);
+    let title = schema_builder.add_text_field("title", TEXT);
+    let content = schema_builder.add_text_field("content", TEXT);
+    let last_updated = schema_builder.add_date_field("last_updated", INDEXED);
+    // This is ES specific in a sense
+    let source = schema_builder.add_text_field("source", STORED);
     let schema = schema_builder.build();
+    dbg!(&schema);
 
     let index_path = "/tmp/lucky/tantivy-idx";
     fs::create_dir_all(index_path)?;
@@ -96,8 +101,10 @@ fn run() -> Result<(), Box<Error>> {
         // dbg!(v);
 
         let mut doc = Document::new();
-        doc.add_text(title, v["name"].as_str().unwrap_or(""));
-        doc.add_text(body, v["slug"].as_str().unwrap_or(""));
+        doc.add_text(title, v["title"].as_str().unwrap_or(""));
+        doc.add_text(content, v["content"].as_str().unwrap_or(""));
+        // doc.add_date(content, v["last_updated"].as_str().unwrap_or(""));
+        doc.add_text(source, doc_source);
 
         index_writer.add_document(doc);
     }
@@ -114,12 +121,13 @@ fn run() -> Result<(), Box<Error>> {
 
     let searcher = reader.searcher();
 
-    let query_parser = QueryParser::for_index(&index, vec![title, body]);
+    let query_parser = QueryParser::for_index(&index, vec![title, content]);
 
     // QueryParser may fail if the query is not in the right
     // format. For user facing applications, this can be a problem.
     // A ticket has been opened regarding this problem.
-    let query = query_parser.parse_query("magnam")?;
+    let query = query_parser.parse_query("6t3YDPk")?;
+    dbg!(&query);
 
     // Perform search.
     // `topdocs` contains the 10 most relevant doc ids, sorted by decreasing scores...
