@@ -86,16 +86,20 @@ fn run() -> Result<(), Box<Error>> {
     let mut index_writer = index.writer(100_000_000)?;
 
     // FIXME: likely better to just grab all the docs at once in a chunked series than this
-    // FIXME: not clear how to set id on Document in tantivy so this is appending each run
+    // FIXME: not clear how to set id on Document in tantivy so this is duplication on each run
     while iterator.invoke("hasNext", &[])?.to_rust()? {
         let doc_source: String = iterator.invoke("next", &[])?.to_rust()?;
+        // there is also a parse_document method we could use specific to tantivy
+        // but it errors on any keys not in the schema
+        // let doc: Document = schema.parse_document(&doc_source)?;
         let v: Value = serde_json::from_str(&doc_source)?;
+        // dbg!(v);
 
         let mut doc = Document::new();
         doc.add_text(title, v["name"].as_str().unwrap_or(""));
         doc.add_text(body, v["slug"].as_str().unwrap_or(""));
+
         index_writer.add_document(doc);
-        // dbg!(v);
     }
 
     // We need to call .commit() explicitly to force the
@@ -126,6 +130,7 @@ fn run() -> Result<(), Box<Error>> {
         let retrieved_doc = searcher.doc(doc_address)?;
         println!("{}", schema.to_json(&retrieved_doc));
     }
+
     Ok(())
 }
 
