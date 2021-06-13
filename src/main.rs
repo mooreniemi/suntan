@@ -1,5 +1,6 @@
 use std::convert::TryFrom;
 use std::error::Error;
+use std::fs;
 use std::process;
 
 // (Full example with detailed comments in examples/01d_quick_example.rs)
@@ -10,7 +11,7 @@ use clap::{AppSettings, Clap};
 use j4rs::{ClasspathEntry, InvocationArg, Jvm, JvmBuilder};
 use serde_json::Value;
 use tantivy::collector::TopDocs;
-use tantivy::doc;
+use tantivy::directory::MmapDirectory;
 use tantivy::query::QueryParser;
 use tantivy::schema::Schema;
 use tantivy::schema::STORED;
@@ -59,7 +60,13 @@ fn run() -> Result<(), Box<Error>> {
     let body = schema_builder.add_text_field("slug", TEXT);
     let schema = schema_builder.build();
 
-    let entry = ClasspathEntry::new("/home/alex/git/lucky-java/target/lucky-java-1.0-SNAPSHOT.jar");
+    let index_path = "/tmp/lucky/tantivy-idx";
+    fs::create_dir_all(index_path)?;
+
+    let directory = MmapDirectory::open(&index_path)?;
+    let index = Index::open_or_create(directory, schema.clone())?;
+
+    let entry = ClasspathEntry::new("./java_wrapper/target/lucky-java-1.0-SNAPSHOT.jar");
     let jvm: Jvm = JvmBuilder::new()
         .classpath_entry(entry)
         .build()
@@ -74,13 +81,12 @@ fn run() -> Result<(), Box<Error>> {
 
     // Indexing documents
 
-    let index = Index::create_in_dir("/tmp/tantivy-test/", schema.clone())?;
-
     // Here we use a buffer of 100MB that will be split
     // between indexing threads.
     let mut index_writer = index.writer(100_000_000)?;
 
     // FIXME: likely better to just grab all the docs at once in a chunked series than this
+    // FIXME: not clear how to set id on Document in tantivy so this is appending each run
     while iterator.invoke("hasNext", &[])?.to_rust()? {
         let doc_source: String = iterator.invoke("next", &[])?.to_rust()?;
         let v: Value = serde_json::from_str(&doc_source)?;
