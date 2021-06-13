@@ -57,7 +57,7 @@ fn find(siv: &mut Cursive, text: &str) {
     // First, remove the find popup
     siv.pop_layer();
 
-    let entry = ClasspathEntry::new("/home/alex/git/lucky-java/target/lucky-java-1.0-SNAPSHOT.jar");
+    let entry = ClasspathEntry::new("./java_wrapper/target/lucky-java-1.0-SNAPSHOT.jar");
     let jvm: Jvm = JvmBuilder::new().classpath_entry(entry).build().unwrap();
 
     // this example shard was generated with some faker data in Latin
@@ -68,14 +68,15 @@ fn find(siv: &mut Cursive, text: &str) {
 
     let res = siv.call_on_name("text", |v: &mut TextArea| {
         let field_and_value = vec![
-            InvocationArg::try_from("name").unwrap(),
+            InvocationArg::try_from("content").unwrap(),
             InvocationArg::try_from(text).unwrap(),
         ];
 
         // query the given text from the text area content
         // Possible improvement: search after the current cursor.
         match jvm
-            .chain(shard_reader)
+            .chain(&shard_reader)
+            .unwrap()
             .invoke("queryName", &field_and_value)
         {
             Ok(java_res) => {

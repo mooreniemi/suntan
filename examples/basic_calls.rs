@@ -7,7 +7,7 @@ use serde_json::Value;
 use std::convert::TryFrom;
 
 fn main() {
-    let entry = ClasspathEntry::new("/home/alex/git/lucky-java/target/lucky-java-1.0-SNAPSHOT.jar");
+    let entry = ClasspathEntry::new("./java_wrapper/target/lucky-java-1.0-SNAPSHOT.jar");
     let jvm: Jvm = JvmBuilder::new()
         .classpath_entry(entry)
         .build()
@@ -20,8 +20,8 @@ fn main() {
         .unwrap();
 
     let field_and_value = vec![
-        InvocationArg::try_from("name").unwrap(),
-        InvocationArg::try_from("magnam").unwrap(),
+        InvocationArg::try_from("content").unwrap(),
+        InvocationArg::try_from("ferrous").unwrap(),
     ];
     let names: Vec<String> = jvm
         .chain(&instance)

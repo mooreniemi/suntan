@@ -30,9 +30,8 @@ public class ShardReader {
 
     // https://medium.com/@manis.eren/loading-elasticsearch-index-to-lucene-api-in-java-bf3206a152b9
     public static void main(String[] args) throws Exception {
-        final String pathName = "/var/lib/elasticsearch/nodes/0/indices/9XubvRRIQjC10BJKHhG1ug/0/index/";
-        final String pathName2 = "/var/lib/elasticsearch/nodes/0/indices/0aoMuSE3QK6UZFV1htSczw/0/index/";
-        ShardReader sr = new ShardReader(pathName2);
+        final String pathName = "/var/lib/elasticsearch/nodes/0/indices/TvG2djXSQgqg4PWZSrv2wQ/0/index/";
+        ShardReader sr = new ShardReader(pathName);
         System.out.println("Docs in Reader count: " + sr.docCount());
 
         Document doc = sr.getReader().document(1);
@@ -43,11 +42,11 @@ public class ShardReader {
         // System.exit(0);
 
         // this depends on your local example schema
-        Term t = new Term("name", "magnam");
+        Term t = new Term("title", "lint");
         int freq = sr.getReader().docFreq(t);
         System.out.println("FREQ " + freq);
 
-        sr.queryName("name", "magnam");
+        sr.queryName("title", "lint");
     }
 
     // Loading all docs into memory is a bit risky but sending them all over at once
@@ -100,6 +99,7 @@ public class ShardReader {
     }
 
     public List<String> queryName(String field, String value) {
+        System.out.println("Searching for " + value + " in " + field);
         final Term t = new Term(field, value);
         final IndexSearcher searcher = new IndexSearcher(reader);
         final Query query = new TermQuery(t);

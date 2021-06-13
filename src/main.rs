@@ -120,13 +120,14 @@ fn run() -> Result<(), Box<Error>> {
     let reader = index.reader()?;
 
     let searcher = reader.searcher();
+    dbg!(searcher.num_docs());
 
     let query_parser = QueryParser::for_index(&index, vec![title, content]);
 
     // QueryParser may fail if the query is not in the right
     // format. For user facing applications, this can be a problem.
     // A ticket has been opened regarding this problem.
-    let query = query_parser.parse_query("6t3YDPk")?;
+    let query = query_parser.parse_query("lint")?;
     dbg!(&query);
 
     // Perform search.
