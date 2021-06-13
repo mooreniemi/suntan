@@ -22,4 +22,5 @@ python es_test_data.py --es_url=http://localhost:9200 --format=title:dict:1:6,co
 
 ## high level todos
 
+- schema to schema mapping to make this a fully parameterized CLI tool. 
 - java_wrapper should probably be made into a git submodule. Right now I `rsync` from another repo.

@@ -18,8 +18,8 @@ use tantivy::Document;
 use tantivy::Index;
 use tantivy::Score;
 
-/// This doc string acts as a help message when the user runs '--help'
-/// as do all doc strings on fields
+/// This is a tool for dumping Elasticsearch Lucene shards into Tantivy indices.
+/// Elasticsearch stores fields in a particular way which is why it's not "just" Lucene.
 #[derive(Clap)]
 #[clap(version = "0.1.1", author = "Alex MN. <moore.niemi@gmail.com>")]
 #[clap(setting = AppSettings::ColoredHelp)]
