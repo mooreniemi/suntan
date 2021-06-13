@@ -53,6 +53,29 @@ To generate Elasticsearch data I use [elasticsearch-test-data](https://github.co
 python es_test_data.py --es_url=http://localhost:9200 --format=title:dict:1:6,content:dict:10:20,last_update:ts,created:ts --count=1000 --dict_file=/usr/share/dict/words
 ```
 
+On Linux, Elasticsearch lives under `/var/lib`. Here's what the origin of the test data looks like:
+
+```
+ls -lah /var/lib/elasticsearch/nodes/0/indices/TvG2djXSQgqg4PWZSrv2wQ/0/index//0/indices/TvG2djXSQgqg4PWZSrv2wQ/0/index/
+total 3.8M
+drwxr-xr-x 2 elasticsearch elasticsearch 4.0K Jun 12 22:17 .
+drwxr-xr-x 5 elasticsearch elasticsearch 4.0K Jun 12 21:21 ..
+-rw-r--r-- 1 elasticsearch elasticsearch  405 Jun 12 21:21 _0.cfe
+-rw-r--r-- 1 elasticsearch elasticsearch 802K Jun 12 21:21 _0.cfs
+-rw-r--r-- 1 elasticsearch elasticsearch  367 Jun 12 21:21 _0.si
+-rw-r--r-- 1 elasticsearch elasticsearch  405 Jun 12 22:17 _1.cfe
+-rw-r--r-- 1 elasticsearch elasticsearch 3.0M Jun 12 22:17 _1.cfs
+-rw-r--r-- 1 elasticsearch elasticsearch  367 Jun 12 22:17 _1.si
+-rw-r--r-- 1 elasticsearch elasticsearch  423 Jun 12 22:17 segments_6
+-rw-r--r-- 1 elasticsearch elasticsearch    0 Jun 12 21:21 write.lock
+```
+
+This is easy enough to push into the `test/resources`:
+
+```
+rsync -r /var/lib/elasticsearch/nodes/0/indices/TvG2djXSQgqg4PWZSrv2wQ/0/index/ tests/resources
+```
+
 ## high level todos
 
 - More types in the schema to schema mapping to make this a fully parameterized CLI tool. Right now only text is supported.
