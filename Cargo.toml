@@ -1,6 +1,6 @@
 [package]
-name = "lucky"
-version = "0.1.1"
+name = "suntan"
+version = "0.1.2"
 authors = ["alex <bigbadmath@gmail.com>"]
 edition = "2018"
 

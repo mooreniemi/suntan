@@ -7,7 +7,7 @@ use serde_json::Value;
 use std::convert::TryFrom;
 
 fn main() {
-    let entry = ClasspathEntry::new("./java_wrapper/target/lucky-java-1.0-SNAPSHOT.jar");
+    let entry = ClasspathEntry::new("./java_wrapper/target/suntan-1.0-SNAPSHOT.jar");
     let jvm: Jvm = JvmBuilder::new()
         .classpath_entry(entry)
         .build()
@@ -16,7 +16,7 @@ fn main() {
     // this example shard was generated with some faker data in Latin
     let instantiation_args = vec![InvocationArg::try_from("tests/resources/").unwrap()];
     let instance = jvm
-        .create_instance("org.lucky.ShardReader", instantiation_args.as_ref())
+        .create_instance("org.suntan.ShardReader", instantiation_args.as_ref())
         .unwrap();
 
     let field_and_value = vec![

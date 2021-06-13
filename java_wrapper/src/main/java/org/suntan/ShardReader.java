@@ -1,4 +1,4 @@
-package org.lucky;
+package org.suntan;
 
 import com.google.gson.JsonParser;
 import org.apache.lucene.document.Document;

@@ -1,28 +1,29 @@
 ```
-    .-.-.
- __ \   / __
-(  ` \.'.'  )
-(__.', \ .__)
-    /   \`===,
-    `-^-'
-
-niki
+        .
+      \ | /
+    '-.;;;.-'
+   -==;;;;;==-
+    .-';;;'-.
+      / | \
+jgs     '
 ```
-# lucky
+# suntan
 
 This is just a proof-of-concept tool to dump Elasticsearch Lucene shards into Tantivy. There's also a couple `examples` of calling Lucene through Rust for querying. You provide input, output, and the Tantivy output schema and the tool dumps into it. Your Tantivy schema must be just like or a subset of the Elasticsearch schema. Not all types are supported yet.
 
 ## cli
 
+If run without arguments the cli will attempt to use test resources.
+
 ```
-./target/debug/lucky --help
-lucky 0.1.1
+./target/debug/suntan --help
+suntan 0.1.2
 Alex MN. <moore.niemi@gmail.com>
 This is a tool for dumping Elasticsearch Lucene shards into Tantivy indices. Elasticsearch stores
 fields in a particular way which is why it's not "just" Lucene
 
 USAGE:
-    lucky [OPTIONS]
+    suntan [OPTIONS]
 
 FLAGS:
     -h, --help       Prints help information
@@ -32,7 +33,7 @@ OPTIONS:
     -i, --input <input>                The location of the Elasticsearch Lucene index [default:
                                        tests/resources/es-idx]
     -o, --output <output>              The location of the Tantivy output index [default:
-                                       /tmp/lucky/tantivy-idx]
+                                       /tmp/suntan/tantivy-idx]
     -s, --schema-path <schema-path>    The location of the Tantivy schema [default:
                                        tests/resources/tantivy-schema.json]
     -t, --test-query <test-query>      To test that the docs still match, this is sent in as test
@@ -78,5 +79,7 @@ rsync -r /var/lib/elasticsearch/nodes/0/indices/TvG2djXSQgqg4PWZSrv2wQ/0/index/ 
 
 ## high level todos
 
-- More types in the schema to schema mapping to make this a fully parameterized CLI tool. Right now only text is supported.
+- Properly package the jar with the bin.
+- `HierarchicalFacet` and `DateTime` support in the schema mapping.
+- Remapping field names on export.
 - java_wrapper should probably be made into a git submodule. Right now I `rsync` from another repo.

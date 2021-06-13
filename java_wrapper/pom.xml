@@ -5,7 +5,7 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>org.example</groupId>
-    <artifactId>lucky-java</artifactId>
+    <artifactId>suntan</artifactId>
     <version>1.0-SNAPSHOT</version>
     <build>
         <plugins>
@@ -33,7 +33,7 @@
                                 <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
                                 <!-- add Main-Class to manifest file -->
                                 <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
-                                    <mainClass>org.lucky.ShardReader</mainClass>
+                                    <mainClass>org.suntan.ShardReader</mainClass>
                                 </transformer>
                             </transformers>
                         </configuration>
@@ -53,7 +53,7 @@
                             <archive>
                                 <manifest>
                                     <mainClass>
-                                        org.lucky.ShardReader
+                                        org.suntan.ShardReader
                                     </mainClass>
                                 </manifest>
                             </archive>

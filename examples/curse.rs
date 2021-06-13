@@ -14,7 +14,7 @@ fn main() {
     // Its size expand automatically with the content.
     siv.add_layer(
         Dialog::new()
-            .title("lucky")
+            .title("suntan")
             .padding_lrtb(1, 1, 1, 0)
             .content(TextArea::new().with_name("text"))
             .button("quit", Cursive::quit),
@@ -57,13 +57,13 @@ fn find(siv: &mut Cursive, text: &str) {
     // First, remove the find popup
     siv.pop_layer();
 
-    let entry = ClasspathEntry::new("./java_wrapper/target/lucky-java-1.0-SNAPSHOT.jar");
+    let entry = ClasspathEntry::new("./java_wrapper/target/suntan-1.0-SNAPSHOT.jar");
     let jvm: Jvm = JvmBuilder::new().classpath_entry(entry).build().unwrap();
 
     // this example shard was generated with some faker data in Latin
     let instantiation_args = vec![InvocationArg::try_from("tests/resources/").unwrap()];
     let shard_reader = jvm
-        .create_instance("org.lucky.ShardReader", instantiation_args.as_ref())
+        .create_instance("org.suntan.ShardReader", instantiation_args.as_ref())
         .unwrap();
 
     let res = siv.call_on_name("text", |v: &mut TextArea| {
