@@ -57,14 +57,17 @@ struct Test {
 fn run() -> Result<(), Box<Error>> {
     // destination index details
     let mut schema_builder = Schema::builder();
+    // fields
     let title = schema_builder.add_text_field("title", TEXT | STORED);
     let content = schema_builder.add_text_field("content", TEXT | STORED);
     let last_updated = schema_builder.add_date_field("last_updated", INDEXED);
     // This is ES specific in a sense
     let source = schema_builder.add_text_field("source", STORED);
+
     let schema = schema_builder.build();
     dbg!(&schema);
 
+    // safe to rm -rf /tmp/lucky/tantivy-idx
     let index_path = "/tmp/lucky/tantivy-idx";
     fs::create_dir_all(index_path)?;
 
@@ -77,12 +80,11 @@ fn run() -> Result<(), Box<Error>> {
         .build()
         .expect("can build JVM");
 
-    // this example shard was generated with some faker data in Latin
     let instantiation_args = vec![InvocationArg::try_from("tests/resources/")?];
     let instance = jvm.create_instance("org.lucky.ShardReader", instantiation_args.as_ref())?;
 
     let chain = jvm.chain(&instance)?;
-    let iterator = chain.invoke("iterator", &[])?;
+    let iterator = chain.invoke("batches", &[])?;
 
     // Indexing documents
 
@@ -90,31 +92,28 @@ fn run() -> Result<(), Box<Error>> {
     // between indexing threads.
     let mut index_writer = index.writer(100_000_000)?;
 
-    // FIXME: switch to batch iterator to pull in chunks of 1000 docs at a time
     // FIXME: tantivy DocId is incremental so this creates duplication on each run
     // FIXME: see also https://docs.rs/tantivy/0.15.0/tantivy/type.DocId.html
     while iterator.invoke("hasNext", &[])?.to_rust()? {
-        let doc_source: String = iterator.invoke("next", &[])?.to_rust()?;
-        // there is also a parse_document method we could use specific to tantivy
-        // but it errors on any keys not in the schema
-        // let doc: Document = schema.parse_document(&doc_source)?;
-        let v: Value = serde_json::from_str(&doc_source)?;
-        // dbg!(v);
+        let batch: Vec<String> = iterator.invoke("next", &[])?.to_rust()?;
+        batch.iter().for_each(|doc_source| {
+            // there is also a parse_document method we could use specific to tantivy
+            // but it errors on any keys not in the schema so the below is more flexible right now
+            // let doc: Document = schema.parse_document(&doc_source)?;
+            let v: Value = serde_json::from_str(&doc_source).unwrap();
+            // dbg!(v);
 
-        let mut doc = Document::new();
-        doc.add_text(title, v["title"].as_str().unwrap_or(""));
-        doc.add_text(content, v["content"].as_str().unwrap_or(""));
-        // TODO: chrono timestamp
-        // doc.add_date(content, v["last_updated"].as_str().unwrap_or(""));
-        doc.add_text(source, doc_source);
+            let mut doc = Document::new();
+            doc.add_text(title, v["title"].as_str().unwrap_or(""));
+            doc.add_text(content, v["content"].as_str().unwrap_or(""));
+            // TODO: chrono timestamp
+            // doc.add_date(content, v["last_updated"].as_str().unwrap_or(""));
+            doc.add_text(source, doc_source);
 
-        index_writer.add_document(doc);
+            index_writer.add_document(doc);
+        });
     }
 
-    // We need to call .commit() explicitly to force the
-    // index_writer to finish processing the documents in the queue,
-    // flush the current index to the disk, and advertise
-    // the existence of new documents.
     index_writer.commit()?;
 
     // # Searching
@@ -126,19 +125,13 @@ fn run() -> Result<(), Box<Error>> {
 
     let query_parser = QueryParser::for_index(&index, vec![title, content]);
 
-    // QueryParser may fail if the query is not in the right
-    // format. For user facing applications, this can be a problem.
-    // A ticket has been opened regarding this problem.
     let query = query_parser.parse_query("lint")?;
     dbg!(&query);
 
-    // Perform search.
-    // `topdocs` contains the 10 most relevant doc ids, sorted by decreasing scores...
     let top_docs: Vec<(Score, DocAddress)> = searcher.search(&query, &TopDocs::with_limit(10))?;
 
     println!("results");
     for (_score, doc_address) in top_docs {
-        // Retrieve the actual content of documents given its `doc_address`.
         let retrieved_doc = searcher.doc(doc_address)?;
         dbg!(retrieved_doc);
         // println!("{}", schema.to_json(&retrieved_doc));
@@ -148,6 +141,7 @@ fn run() -> Result<(), Box<Error>> {
 }
 
 fn main() {
+    // FIXME: this is old Rust 2015 format...
     if let Err(e) = run() {
         println!("Application error: {}", e);
         process::exit(1);
