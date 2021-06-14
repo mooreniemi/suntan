@@ -56,9 +56,13 @@ fn run(
     // j4rs Rust -> Java setup
     // FIXME: is this the best way to handle the underlying java dependency?
     // the jar must be prebuilt already with maven, using mvn package, then build.rs moves it into jassets
-    let jassets_path =
-        Path::new(&env::var("CARGO_MANIFEST_DIR").unwrap()).join("jassets/suntan.jar");
-    let entry = ClasspathEntry::new(jassets_path.as_path().to_str().expect("valid path"));
+    let jassets_path = Path::new(&env!("CARGO_MANIFEST_DIR")).join("jassets/suntan.jar");
+    let entry = ClasspathEntry::new(
+        jassets_path
+            .as_path()
+            .to_str()
+            .expect("valid jassets classpath"),
+    );
     let jvm: Jvm = JvmBuilder::new()
         .classpath_entry(entry)
         .build()
