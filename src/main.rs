@@ -1,6 +1,8 @@
 use std::convert::TryFrom;
+use std::env;
 use std::error::Error;
 use std::fs;
+use std::path::Path;
 use std::process;
 
 use clap::{AppSettings, Clap};
@@ -52,7 +54,11 @@ fn run(
     let index = Index::open_or_create(directory, schema.clone())?;
 
     // j4rs Rust -> Java setup
-    let entry = ClasspathEntry::new("./java_wrapper/target/suntan-1.0-SNAPSHOT.jar");
+    // FIXME: is this the best way to handle the underlying java dependency?
+    // the jar must be prebuilt already with maven, using mvn package, then build.rs moves it into jassets
+    let jassets_path =
+        Path::new(&env::var("CARGO_MANIFEST_DIR").unwrap()).join("jassets/suntan.jar");
+    let entry = ClasspathEntry::new(jassets_path.as_path().to_str().expect("valid path"));
     let jvm: Jvm = JvmBuilder::new()
         .classpath_entry(entry)
         .build()
