@@ -87,7 +87,7 @@ fn run(
             // there is also a parse_document method we could use specific to tantivy
             // but it errors on any keys not in the schema so the below is more flexible right now
             // let doc: Document = schema.parse_document(&doc_source)?;
-            let v: Value = serde_json::from_str(&doc_source).unwrap();
+            let v: Value = serde_json::from_str(&doc_source).expect("must be valid doc");
             // dbg!(v);
 
             let mut doc = Document::new();
@@ -112,6 +112,7 @@ fn run(
                         }
                         tantivy::schema::FieldType::Date(_) => {
                             // TODO: need to bring in chrono etc
+                            // doc.add_date(content, v["last_updated"].as_str().unwrap_or(""));
                             todo!()
                         }
                         tantivy::schema::FieldType::HierarchicalFacet(_) => {
@@ -127,9 +128,6 @@ fn run(
                 }
             });
 
-            // TODO: chrono timestamp
-            // doc.add_date(content, v["last_updated"].as_str().unwrap_or(""));
-
             index_writer.add_document(doc);
         });
     }
@@ -138,6 +136,7 @@ fn run(
     index_writer.commit()?;
 
     // # Searching
+    // We read the created index and send a test query into it, to confirm that we successfully exported
 
     let reader = index.reader()?;
 

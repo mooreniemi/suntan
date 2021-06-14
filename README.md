@@ -9,7 +9,12 @@ jgs     '
 ```
 # suntan
 
-This is just a proof-of-concept tool to dump Elasticsearch Lucene shards into Tantivy. There's also a couple `examples` of calling Lucene through Rust for querying. You provide input, output, and the Tantivy output schema and the tool dumps into it. Your Tantivy schema must be just like or a subset of the Elasticsearch schema. Not all types are supported yet.
+This is a proof-of-concept CLI tool to dump Elasticsearch Lucene shards into Tantivy. There's also a couple `examples` of calling Lucene through Rust for querying. You provide input, output, and the Tantivy output schema and the tool dumps into it. Your Tantivy schema must be just like or a subset of the Elasticsearch schema. Not all types are supported yet.
+
+```
+# this creates a tantivy index at /tmp/suntan/tantivy-idx given the test resources
+suntan -i tests/resources/es-idx/ -s tests/resources/tantivy-schema.json
+```
 
 ## cli
 
@@ -46,6 +51,12 @@ We rely on [`j4rs`](https://github.com/astonbitecode/j4rs). This is a trade-off.
 
 I have made some headway patching [rucene](https://github.com/zhihu/rucene) in order to read Lucene directly from Rust. I got far enough for what I'd need (to pull out `StoredField` and even to do basic text search) but not further to things like `DocValues`. When/if I have time I may try to incorporate that here as an optimization. The danger would be with the next breaking version we'd have to again patch.
 
+## development
+
+I worked with Java 8 and [maven](https://maven.apache.org/what-is-maven.html). 
+
+`mvn package` is all you need to generate the jar. Then `build.rs` will copy it into `jassets/suntan.jar`.
+
 ## test_data
 
 To generate Elasticsearch data I use [elasticsearch-test-data](https://github.com/oliver006/elasticsearch-test-data). A copy of test data is kept in `tests/resources`. Here's what I used to generate the `test_data` index:
@@ -79,7 +90,6 @@ rsync -r /var/lib/elasticsearch/nodes/0/indices/TvG2djXSQgqg4PWZSrv2wQ/0/index/ 
 
 ## high level todos
 
-- Properly package the jar with the bin.
 - `HierarchicalFacet` and `DateTime` support in the schema mapping.
 - Remapping field names on export.
 - java_wrapper should probably be made into a git submodule. Right now I `rsync` from another repo.
