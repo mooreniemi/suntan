@@ -22,7 +22,7 @@
     }
   },
   {
-    "name": "source",
+    "name": "_es_source",
     "type": "text",
     "options": {
       "stored": true

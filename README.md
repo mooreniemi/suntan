@@ -92,4 +92,5 @@ rsync -r /var/lib/elasticsearch/nodes/0/indices/TvG2djXSQgqg4PWZSrv2wQ/0/index/ 
 
 - `HierarchicalFacet` and `DateTime` support in the schema mapping.
 - Remapping field names on export.
+- Switch Clap to StructOpt probably.
 - java_wrapper should probably be made into a git submodule. Right now I `rsync` from another repo.
