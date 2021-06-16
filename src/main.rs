@@ -1,3 +1,4 @@
+use chrono::{DateTime, Utc};
 use log::{debug, error};
 use log::{info, warn};
 use std::convert::TryFrom;
@@ -6,7 +7,9 @@ use std::error::Error;
 use std::fs;
 use std::path::Path;
 use std::process;
+use std::str::FromStr;
 use std::time::Instant;
+use tantivy::fastfield::FastValue;
 
 use clap::{AppSettings, Clap};
 use j4rs::{ClasspathEntry, InvocationArg, Jvm, JvmBuilder};
@@ -195,6 +198,8 @@ fn run(
     Ok(())
 }
 
+// FIXME: do I really need this or can I just use what Tantivy already has for json parsing?
+// TODO: error msgs + HierarchicalFacet
 fn add_to_doc(
     field: Field,
     field_entry: &FieldEntry,
@@ -231,9 +236,13 @@ fn add_to_doc(
             Ok(())
         }
         tantivy::schema::FieldType::Date(_) => {
-            // TODO: need to bring in chrono etc
-            // doc.add_date(content, v["last_updated"].as_str().unwrap_or(""));
-            todo!()
+            // NOTE: only rf3339? https://github.com/tantivy-search/tantivy/pull/721/files
+            let fv = &v[field_entry.name()];
+            let datetime_str = fv.as_str().ok_or(anyhow::anyhow!("bad date"))?;
+
+            let datetime = DateTime::<Utc>::from_str(&datetime_str)?;
+            doc.add_date(field, &datetime);
+            Ok(())
         }
         tantivy::schema::FieldType::HierarchicalFacet(_) => {
             todo!()
@@ -241,7 +250,7 @@ fn add_to_doc(
         tantivy::schema::FieldType::Bytes(_) => {
             let b = v[field_entry.name()]
                 .as_str()
-                .ok_or(anyhow::anyhow!("bad str"))?
+                .ok_or(anyhow::anyhow!("bad  (bytes)"))?
                 .as_bytes();
             doc.add_bytes(field, b);
             Ok(())
@@ -257,5 +266,108 @@ fn main() {
     if let Err(e) = run(opts.input, opts.output, opts.schema_path, opts.test_query) {
         println!("Application error: {}", e);
         process::exit(1);
+    }
+}
+
+// FIXME: clean up these tests
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_doc_field_text_parsing() {
+        let mut doc = Document::new();
+        let tantivy_f_title = r#"
+        [{
+            "name": "title",
+            "type": "text",
+            "options": {
+              "indexing": {
+                "record": "position",
+                "tokenizer": "default"
+              },
+              "stored": false
+            }
+        }]
+        "#;
+        let schema: Schema = serde_json::from_str(&tantivy_f_title).expect("test data is valid");
+        let es_source = r#"
+        {
+            "title" : "barters waistlines",
+            "content" : "intrusion's decapitations drawbridge's trouping timepiece's peerage proctoring stinted ferrous gunfire bicyclist coverings perfumeries tyro plume's Sellers's hundredth",
+            "last_update" : 1623646848000,
+            "created" : 1622229665000
+          }
+        "#;
+        let v: Value = serde_json::from_str(&es_source).expect("test data is valid");
+        let title_f = schema
+            .get_field("title")
+            .expect("have title field in schema");
+        let title_fe = schema.get_field_entry(title_f);
+        let res = add_to_doc(title_f, title_fe, &v, &mut doc);
+        assert!(res.is_ok());
+    }
+
+    #[test]
+    fn test_doc_field_date_str_parsing() {
+        let mut doc = Document::new();
+        let tantivy_f_created = r#"
+        [{
+            "name": "created",
+            "type": "date",
+            "options": {
+                "indexed": true,
+                "stored": false
+            }
+        }]
+        "#;
+        let schema: Schema = serde_json::from_str(&tantivy_f_created).expect("test data is valid");
+        let es_source = r#"
+        {
+            "title" : "barters waistlines",
+            "content" : "intrusion's decapitations drawbridge's trouping timepiece's peerage proctoring stinted ferrous gunfire bicyclist coverings perfumeries tyro plume's Sellers's hundredth",
+            "last_update" : 1623646848000,
+            "created" : "1996-12-20T00:39:57+00:00"
+        }
+        "#;
+        let v: Value = serde_json::from_str(&es_source).expect("test data is valid");
+        let created_f = schema
+            .get_field("created")
+            .expect("have created field in schema");
+        let title_fe = schema.get_field_entry(created_f);
+        let res = add_to_doc(created_f, title_fe, &v, &mut doc);
+        assert!(res.is_ok());
+    }
+
+    #[test]
+    fn test_doc_field_date_num_parsing() {
+        let mut doc = Document::new();
+        let tantivy_f_created = r#"
+        [{
+            "name": "last_update",
+            "type": "date",
+            "options": {
+                "indexed": true,
+                "stored": false
+            }
+        }]
+        "#;
+        let schema: Schema = serde_json::from_str(&tantivy_f_created).expect("test data is valid");
+        let es_source = r#"
+        {
+            "title" : "barters waistlines",
+            "content" : "intrusion's decapitations drawbridge's trouping timepiece's peerage proctoring stinted ferrous gunfire bicyclist coverings perfumeries tyro plume's Sellers's hundredth",
+            "last_update" : 1623646848000,
+            "created" : "1996-12-20T00:39:57+00:00"
+        }
+        "#;
+        let v: Value = serde_json::from_str(&es_source).expect("test data is valid");
+        let last_update_f = schema
+            .get_field("last_update")
+            .expect("have last_update field in schema");
+        let title_fe = schema.get_field_entry(last_update_f);
+        let res = add_to_doc(last_update_f, title_fe, &v, &mut doc);
+        // only date format of string is supported
+        assert!(res.is_err());
     }
 }

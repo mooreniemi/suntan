@@ -1330,6 +1330,7 @@ name = "suntan"
 version = "0.1.2"
 dependencies = [
  "anyhow",
+ "chrono",
  "clap",
  "cursive",
  "env_logger",
