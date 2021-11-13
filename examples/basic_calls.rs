@@ -14,7 +14,7 @@ fn main() {
         .expect("can build JVM");
 
     // this example shard was generated with some faker data in Latin
-    let instantiation_args = vec![InvocationArg::try_from("tests/resources/").unwrap()];
+    let instantiation_args = vec![InvocationArg::try_from("tests/resources/es-idx/").unwrap()];
     let instance = jvm
         .create_instance("org.suntan.ShardReader", instantiation_args.as_ref())
         .unwrap();
